@@ -1,0 +1,24 @@
+# Virtual environment
+.venv/
+venv/
+
+# Vendored native libraries (fetched by tools/fetch_librtlsdr.ps1)
+lib/*.dll
+lib/*.exe
+
+# Captured data
+data/
+*.npz
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
