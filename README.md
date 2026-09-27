@@ -150,9 +150,13 @@ signals with measured bandwidth and burstiness, band occupancy, and (with a
 baseline loaded) the differences. In practice ~12,000 bins reduces to about
 600 tokens with nothing important lost.
 
-Keys go into **Windows Credential Manager** via `keyring` — never into the
+Keys go into the operating system's credential store via `keyring` —
+**Windows Credential Manager**, the **macOS Keychain**, or a **Secret
+Service** provider (GNOME Keyring, KWallet) on Linux — never into the
 settings JSON, the session database, or exported scans, any of which you
-might reasonably share along with a capture.
+might reasonably share along with a capture. If no secure store is
+available (common on headless or minimal Linux installs), Aether refuses to
+save the key rather than falling back to a plaintext file.
 
 The scan summary is attached to the **first** question of a conversation
 only; follow-ups do not re-send it.
@@ -177,6 +181,26 @@ and rewrite those paths together.
 Every parameter that affects the measurement is stored per session, because
 a baseline taken at a different gain or resolution is not comparable and the
 comparison code needs to be able to say so.
+
+---
+
+## Exporting
+
+From the **Saved scans** panel, or the **File** menu:
+
+- **Export CSV** — per-bin `frequency_hz, avg_db, min_db, max_db,
+  peak_hold_db, sweep_count`. The panel button exports the *selected* row;
+  the File menu item exports the scan on screen.
+- **Export image** — a PNG of the graph *as displayed*: current zoom, the
+  traces you have switched on, and the baseline overlay and delta panel if
+  a baseline is loaded. What you see is what you get.
+- **Export CSV + image** — one save dialog, two files side by side
+  (`name.csv`, `name.png`), both from the scan on screen so they always
+  match.
+
+The image and combined exports act on the displayed scan, not the selected
+row: set up the view first, then export. Default filenames use the loaded
+session's timestamp and range, or `spectrum` for an unsaved scan.
 
 ---
 

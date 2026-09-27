@@ -15,7 +15,8 @@ scipy>=1.11
 pyserial>=3.5
 pynmea2>=1.19
 
-# Secrets (Windows Credential Manager)
+# Secrets (OS credential store: Windows Credential Manager, macOS Keychain,
+# Secret Service on Linux)
 keyring>=25.0
 
 # AI providers

@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from .. import config
 from ..ai import context as ai_context
+from ..ai import keys
 from ..ai.provider import LLMProvider, Message, ProviderError, make_provider
 from .control_panel import shrinkable
 
@@ -191,9 +192,10 @@ class ChatPanel(QWidget):
         else:
             self.key_status.setVisible(True)
             self.key_status.setText(
-                "No API key saved for %s. Add one under Settings > AI. "
-                "Keys are stored in Windows Credential Manager, not in any "
-                "project file." % provider.display_name
+                keys.storage_problem()
+                or "No API key saved for %s. Add one under Settings > AI. "
+                "Keys are stored in %s, not in any project file."
+                % (provider.display_name, keys.STORE_DESCRIPTION)
             )
             self.send_button.setEnabled(False)
 

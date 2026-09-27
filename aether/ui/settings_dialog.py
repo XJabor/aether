@@ -27,8 +27,9 @@ class SettingsDialog(QDialog):
         ai_form = QFormLayout(ai_box)
 
         note = QLabel(
-            "Keys are stored in Windows Credential Manager, never in project "
-            "files, the session database or exported scans."
+            keys.storage_problem()
+            or "Keys are stored in %s, never in project files, the session "
+            "database or exported scans." % keys.STORE_DESCRIPTION
         )
         note.setWordWrap(True)
         note.setStyleSheet("font-size: 11px; color: #8a949e;")
