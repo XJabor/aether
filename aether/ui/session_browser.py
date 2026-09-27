@@ -18,6 +18,8 @@ class SessionBrowser(QWidget):
     sessionLoaded = Signal(object, object)      # SessionMeta, SpectrumData
     referenceLoaded = Signal(object, object)
     referenceCleared = Signal()
+    imageExportRequested = Signal()             # export the displayed graph
+    bundleExportRequested = Signal()            # displayed CSV + graph image
 
     def __init__(self, db: Database, parent=None) -> None:
         super().__init__(parent)
@@ -62,12 +64,28 @@ class SessionBrowser(QWidget):
             row2.addWidget(b)
         root.addLayout(row2)
 
+        row3 = QHBoxLayout()
+        self.image_button = QPushButton("Export image")
+        self.bundle_button = QPushButton("Export CSV + image")
+        for b in (self.image_button, self.bundle_button):
+            b.setToolTip("Save the graph as currently displayed")
+            row3.addWidget(b)
+        root.addLayout(row3)
+        self.set_graph_export_enabled(False)
+
         self.load_button.clicked.connect(self.load_selected)
         self.ref_button.clicked.connect(self.load_reference)
         self.clear_ref_button.clicked.connect(self.referenceCleared.emit)
         self.refresh_button.clicked.connect(self.refresh)
         self.csv_button.clicked.connect(self.export_selected)
         self.delete_button.clicked.connect(self.delete_selected)
+        self.image_button.clicked.connect(self.imageExportRequested.emit)
+        self.bundle_button.clicked.connect(self.bundleExportRequested.emit)
+
+    def set_graph_export_enabled(self, enabled: bool) -> None:
+        """The graph exports act on what is displayed, not the selected row."""
+        self.image_button.setEnabled(enabled)
+        self.bundle_button.setEnabled(enabled)
 
     # -- listing ---------------------------------------------------------
 

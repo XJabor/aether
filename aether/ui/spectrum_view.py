@@ -221,6 +221,18 @@ class SpectrumView(QWidget):
     def set_x_range_hz(self, lo: float, hi: float) -> None:
         self.plot.setXRange(lo, hi, padding=0.01)
 
+    def save_image(self, path) -> None:
+        """Save the plot area (main + delta panel if shown) as it looks now.
+
+        grab() captures what is actually rendered -- zoom, visible traces,
+        baseline overlay -- rather than re-rendering with defaults.
+        """
+        # The readout only clears when the mouse leaves the plot, so after
+        # clicking an export button it can still hold a stale coordinate.
+        self._readout.setText("")
+        if not self._layout_widget.grab().save(str(path), "PNG"):
+            raise OSError("Could not write image to %s" % path)
+
     # -- region ----------------------------------------------------------
 
     def enable_region(self, enabled: bool) -> None:

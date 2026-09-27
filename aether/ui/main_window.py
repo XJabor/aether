@@ -1,6 +1,8 @@
 """Main application window."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from PySide6.QtCore import Qt, QThread, QTimer, Slot
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
@@ -79,6 +81,8 @@ class MainWindow(QMainWindow):
         self.sessions.sessionLoaded.connect(self._on_session_loaded)
         self.sessions.referenceLoaded.connect(self._on_reference_loaded)
         self.sessions.referenceCleared.connect(self._on_reference_cleared)
+        self.sessions.imageExportRequested.connect(self.export_image)
+        self.sessions.bundleExportRequested.connect(self.export_csv_and_image)
         self.sessions_dock = self._dock("Saved scans", self.sessions,
                                         Qt.BottomDockWidgetArea, 0)
 
@@ -180,6 +184,16 @@ class MainWindow(QMainWindow):
         self.csv_action.setEnabled(False)
         self.csv_action.triggered.connect(self.export_csv)
         file_menu.addAction(self.csv_action)
+
+        self.image_action = QAction("Export &image...", self)
+        self.image_action.setEnabled(False)
+        self.image_action.triggered.connect(self.export_image)
+        file_menu.addAction(self.image_action)
+
+        self.bundle_action = QAction("Export CSV + i&mage...", self)
+        self.bundle_action.setEnabled(False)
+        self.bundle_action.triggered.connect(self.export_csv_and_image)
+        file_menu.addAction(self.bundle_action)
         file_menu.addSeparator()
 
         quit_action = QAction("&Quit", self)
@@ -383,7 +397,7 @@ class MainWindow(QMainWindow):
                 self._elapsed = self._worker.elapsed()
                 self._sweeps = acc.sweeps_completed
                 self.save_action.setEnabled(True)
-                self.csv_action.setEnabled(True)
+                self._set_export_enabled(True)
                 self._clip_fraction = self._worker.engine.clip_fraction
                 overload = self._worker.engine.overload_warning()
                 if overload:
@@ -485,6 +499,63 @@ class MainWindow(QMainWindow):
             return
         self._set_status("Exported %s" % path)
 
+    @Slot()
+    def export_image(self) -> None:
+        if self._live_data is None:
+            return
+        default = config.data_root() / ("%s.png" % self._export_basename())
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export image", str(default), "PNG (*.png)"
+        )
+        if not path:
+            return
+        path = Path(path).with_suffix(".png")
+        try:
+            self.spectrum.save_image(path)
+        except OSError as exc:
+            QMessageBox.critical(self, "Export failed", str(exc))
+            return
+        self._set_status("Exported %s" % path)
+
+    @Slot()
+    def export_csv_and_image(self) -> None:
+        """One dialog, two files: <name>.csv and <name>.png side by side."""
+        if self._live_data is None:
+            return
+        default = config.data_root() / ("%s.csv" % self._export_basename())
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export CSV + image", str(default), "CSV + PNG (*.csv)"
+        )
+        if not path:
+            return
+        base = Path(path).with_suffix("")
+        csv_path, png_path = base.with_suffix(".csv"), base.with_suffix(".png")
+        # The dialog only confirmed overwriting the name it showed; the
+        # sibling file gets its own prompt.
+        if png_path.exists():
+            answer = QMessageBox.question(
+                self, "Overwrite image?",
+                "%s already exists. Overwrite it?" % png_path.name,
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            )
+            if answer != QMessageBox.Yes:
+                return
+        try:
+            self._live_data.to_csv(csv_path)
+            self.spectrum.save_image(png_path)
+        except OSError as exc:
+            QMessageBox.critical(self, "Export failed", str(exc))
+            return
+        self._set_status("Exported %s and %s" % (csv_path, png_path.name))
+
+    def _export_basename(self) -> str:
+        return self._loaded_meta.slug() if self._loaded_meta is not None else "spectrum"
+
+    def _set_export_enabled(self, enabled: bool) -> None:
+        for action in (self.csv_action, self.image_action, self.bundle_action):
+            action.setEnabled(enabled)
+        self.sessions.set_graph_export_enabled(enabled)
+
     # -- misc ------------------------------------------------------------
 
     @Slot(object, object)
@@ -497,7 +568,7 @@ class MainWindow(QMainWindow):
         self.spectrum.set_cal_offset(meta.cal_offset_db)
         self.spectrum.set_data(data, autorange=True)
         self.chat.set_scan(data, meta)
-        self.csv_action.setEnabled(True)
+        self._set_export_enabled(True)
         self.save_action.setEnabled(False)
         self._set_status("Loaded #%d: %s" % (meta.id, meta.summary()))
 
